@@ -2,8 +2,4 @@
 
 Maintainer: `mulqizamzam`.
 
-- Keep each Skill focused on one repeatable job.
-- Verify repository instructions before making edits.
-- Preserve native DSH structure at `.dsh/skills/<skill>/SKILL.md`.
-- Run the validator, unit tests, installer tests, and deterministic packaging checks after relevant changes.
-- Never claim checks ran unless execution evidence exists.
+Keep each Skill focused on one repeatable job. Read repository instructions first, preserve DSH's `.dsh/skills/<skill>/SKILL.md` layout, and run validation, unit tests, installer tests, and deterministic packaging checks after relevant changes. Do not claim checks were run without execution evidence. Do not add telemetry, network calls, dependencies, or credentials without a separately justified design review.
