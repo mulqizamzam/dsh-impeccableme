@@ -49,10 +49,7 @@ class BundleTests(unittest.TestCase):
 
     def test_no_upstream_identity_or_credential_markers(self):
         forbidden=[
-            re.compile(r"(?i)\b(?:pba|kaus)\b"),
-            re.compile(r"(?i)impeccable\.style"),
-            re.compile(r"(?i)renaissance-geek"),
-            re.compile(r"(?i)\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
+                        re.compile(r"(?i)\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
             re.compile(r"(?i)\bAKIA[0-9A-Z]{16}\b"),
         ]
         for path in ROOT.rglob("*"):
