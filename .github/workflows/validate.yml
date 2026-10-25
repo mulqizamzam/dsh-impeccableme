@@ -13,11 +13,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python scripts/validate_bundle.py
-      - run: python -m unittest discover -s tests -v
-      - run: bash -n scripts/install.sh
-      - run: bash tests/test_installer.sh
-      - run: |
-          python scripts/package_release.py --output /tmp/a.zip
-          python scripts/package_release.py --output /tmp/b.zip
-          cmp /tmp/a.zip /tmp/b.zip
+      - name: Validate Skill bundle
+        run: python scripts/validate_bundle.py
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Check installer syntax
+        run: bash -n scripts/install.sh
+      - name: Test installer in temporary homes
+        run: bash tests/test_installer.sh
+      - name: Verify deterministic packaging
+        run: |
+          python scripts/package_release.py --output /tmp/package-a.zip
+          python scripts/package_release.py --output /tmp/package-b.zip
+          sha256sum /tmp/package-a.zip /tmp/package-b.zip
+          cmp /tmp/package-a.zip /tmp/package-b.zip
