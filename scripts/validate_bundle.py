@@ -79,7 +79,7 @@ def inspect_public_files():
   if ".git" in p.parts or "__pycache__" in p.parts or not p.is_file(): continue
   rel=p.relative_to(ROOT).as_posix()
   if p.is_symlink(): errors.append(f"symlink not allowed: {rel}"); continue
-  if p.suffix.lower() not in {".md",".py",".sh",".yml",".yaml",".json",".txt",".svg",".gitignore"} and p.name!="VERSION": continue
+  if p.suffix.lower() not in {".md",".py",".sh",".js",".mjs",".yml",".yaml",".json",".txt",".svg",".gitignore"} and p.name!="VERSION": continue
   try: body=p.read_text(encoding="utf-8")
   except (OSError,UnicodeError): errors.append(f"unreadable/non-UTF8: {rel}"); continue
   if any(rx.search(body) for rx in UPSTREAM): errors.append(f"prohibited upstream identity marker: {rel}")
