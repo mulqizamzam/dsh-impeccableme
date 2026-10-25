@@ -1,1 +1,3 @@
-This file is being transferred from the locally validated DSH Design Workbench v0.1.0 release package.
+# Validation
+
+Run `python3 scripts/validate_bundle.py`, `python3 -m unittest discover -s tests -v`, `bash -n scripts/install.sh`, and `bash tests/test_installer.sh`. For reproducibility, build two ZIPs with `scripts/package_release.py` and compare their SHA-256 checksums. These checks do not replace a live DSH smoke test or CI execution.
