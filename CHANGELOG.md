@@ -2,10 +2,11 @@
 
 ## 0.1.0 — 2026-10-26
 
-- Initial independent DSH-native Skill pack with eight focused workflows for project context, interface planning, quality audits, visual refinement, design-system documentation, UX content, frontend engineering, and safe workspace operations.
-- Added a guarded project/global installer, dependency-free bundle validator, unit/integration tests, deterministic ZIP packager, original SVG identity assets, and GitHub Actions checks.
-- Runtime validation boundary: local package checks are provided; live DeepSeek Harness session smoke testing must be done separately.
+- Initial independent DSH bundle for the native `dsh plugin --profile <profile> add <source>` installation workflow.
+- Added `dsh.bundle` package metadata, a profile patch, and a runtime entrypoint registering eight Skills through DSH's `ctx.skills` service.
+- Added focused workflows for project context, interface planning, quality review, visual refinement, system documentation, UX content, frontend engineering, and safe workspace operations.
+- Added bundle validation, Node entrypoint tests, installer tests, CI checks, an original geometric brand, and deterministic ZIP packaging.
 
-## Release process
+## Release verification boundary
 
-Keep `VERSION`, this changelog, package checksum, and Git tag aligned. Validate the final artifact from a clean extraction before publishing it. Do not claim a GitHub Release or DSH runtime verification unless those steps were actually completed.
+The bundle package structure, npm pack file set, Node registration test, and repository CI are verifiable. A live DSH profile smoke test remains a separate environment-specific check.
