@@ -15,6 +15,10 @@ jobs:
           python-version: '3.12'
       - name: Validate Skill bundle
         run: python scripts/validate_bundle.py
+      - name: Check DSH plugin entrypoint syntax
+        run: node --check index.js
+      - name: Test runtime Skill registration
+        run: node tests/test_bundle_entrypoint.mjs
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
       - name: Check installer syntax
