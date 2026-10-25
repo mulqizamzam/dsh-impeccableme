@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dependency-free validation for DSH Design Workbench."""
 from __future__ import annotations
-import argparse, re, sys
+import argparse, json, re, sys
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -95,11 +95,34 @@ def inspect_public_files():
     errors.append(f"external/script SVG content: {rel}")
  return errors
 
+
+def inspect_dsh_bundle():
+ errors=[]
+ try:
+  manifest=json.loads((ROOT/"package.json").read_text(encoding="utf-8"))
+ except (OSError,UnicodeError,ValueError):
+  return ["package.json is missing or invalid JSON"]
+ if manifest.get("name")!="dsh-impeccableme": errors.append("package.json: wrong bundle name")
+ if manifest.get("version")!="0.1.0": errors.append("package.json: version must match VERSION")
+ if manifest.get("main")!="index.js" or not (ROOT/"index.js").is_file(): errors.append("package.json: missing index.js entrypoint")
+ if manifest.get("engines",{}).get("dsh")!=">=0.2.1-rc.2 <0.3.0": errors.append("package.json: wrong DSH engine range")
+ if manifest.get("dsh",{}).get("bundle",{}).get("patch")!="./cordis.patch.yml": errors.append("package.json: missing dsh.bundle.patch")
+ expected={"index.js","cordis.patch.yml",".dsh/skills/**"}
+ if not expected.issubset(set(manifest.get("files",[]))): errors.append("package.json: files must include entrypoint, patch, and Skill sources")
+ patch_path=ROOT/"cordis.patch.yml"
+ try: patch=patch_path.read_text(encoding="utf-8")
+ except (OSError,UnicodeError): return errors+["cordis.patch.yml is missing or unreadable"]
+ for pattern,label in ((r"(?m)^-\s+insert:\s*$","insert operation"),
+                       (r"(?m)^\s+- id:\s*dsh-impeccableme\s*$","bundle row ID"),
+                       (r"(?m)^\s+name:\s*dsh-impeccableme\s*$","plugin entrypoint row")):
+  if not re.search(pattern,patch): errors.append("cordis.patch.yml: missing "+label)
+ return errors
+
 def main():
  parser=argparse.ArgumentParser(description=__doc__)
  parser.add_argument("--quiet",action="store_true")
  parser.parse_args()
- errors=inspect_skills()+inspect_public_files()
+ errors=inspect_skills()+inspect_dsh_bundle()+inspect_public_files()
  if errors:
   print("Bundle validation: FAIL")
   for error in errors: print(" - "+error)
