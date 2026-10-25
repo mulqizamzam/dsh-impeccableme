@@ -32,7 +32,7 @@ def package(output:Path):
  with ZipFile(tmp,"w",compression=ZIP_DEFLATED,compresslevel=9,strict_timestamps=True) as z:
   for p in files:
    info=ZipInfo(p.relative_to(ROOT).as_posix(),date_time=FIXED_TIME); info.compress_type=ZIP_DEFLATED; info.create_system=3
-   mode=0o755 if p.stat().st_mode & stat.S_IXUSR else 0o644; info.external_attr=(stat.S_IFREG|mode)<<16; info.flag_bits|=0x800; info.extra=b""; info.comment=b""
+   mode=0o755 if (p.stat().st_mode & stat.S_IXUSR) or p.suffix in {".sh", ".py"} and p.parts[-2] == "scripts" else 0o644; info.external_attr=((stat.S_IFREG|mode)<<16) | 0x10; info.flag_bits|=0x800; info.extra=b""; info.comment=b""
    z.writestr(info,p.read_bytes(),compress_type=ZIP_DEFLATED,compresslevel=9)
  os.replace(tmp,output); return len(files),sha256(output)
 def main():
