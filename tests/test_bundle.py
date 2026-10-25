@@ -1,37 +1,84 @@
-from pathlib import Path
+from __future__ import annotations
 import re, stat, subprocess, tempfile, unittest
+from pathlib import Path
 from zipfile import ZipFile
-ROOT=Path(__file__).resolve().parents[1]; SKILLS=ROOT/".dsh"/"skills"; SLUG=re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-def metadata(path):
- text=path.read_text(encoding="utf-8"); end=text.find("\n---\n",4)
- if not text.startswith("---\n") or end<0: raise AssertionError(f"bad frontmatter: {path}")
- data={}
- for line in text[4:end].splitlines():
-  k,sep,v=line.partition(":")
-  if sep and k.strip() and v.strip(): data[k.strip()]=v.strip().strip("\"'")
- return data,text[end+5:]
+
+ROOT=Path(__file__).resolve().parents[1]
+SKILLS=ROOT/".dsh"/"skills"
+SLUG=re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+def metadata(path: Path):
+    text=path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"): raise AssertionError(f"missing frontmatter: {path}")
+    end=text.find("\n---\n",4)
+    if end<0: raise AssertionError(f"missing closing frontmatter: {path}")
+    values={}
+    for line in text[4:end].splitlines():
+        key,sep,value=line.partition(":")
+        if sep and key.strip() and value.strip():
+            values[key.strip()]=value.strip().strip("\"'")
+    return values,text[end+5:]
+
 class BundleTests(unittest.TestCase):
- def test_eight_skills(self):
-  dirs=sorted(p for p in SKILLS.iterdir()); self.assertEqual(len(dirs),8)
-  for d in dirs: self.assertTrue(d.is_dir()); self.assertTrue((d/"SKILL.md").is_file()); self.assertRegex(d.name,SLUG)
- def test_metadata(self):
-  names=set()
-  for p in SKILLS.glob("*/SKILL.md"):
-   m,b=metadata(p); self.assertRegex(m.get("name",""),SLUG); self.assertEqual(m["name"],p.parent.name); self.assertNotIn(m["name"],names); names.add(m["name"]); self.assertTrue(m.get("description")); self.assertTrue(b.strip())
- def test_assets(self):
-  for name in ("icon.svg","logo-light.svg","logo-dark.svg"):
-   p=ROOT/"assets"/name; text=p.read_text(); self.assertIn('viewBox="0 0 100 100"',text); self.assertNotRegex(text,r"<script|<image|https?://[^\s\"]+")
- def test_no_upstream_or_secret_markers(self):
-  for p in ROOT.rglob("*"):
-   if not p.is_file() or ".git" in p.parts or "__pycache__" in p.parts: continue
-   if p.suffix.lower() not in {".md",".py",".sh",".yml",".yaml",".svg"}: continue
-   s=p.read_text(); self.assertNotRegex(s,r"(?i)\b(?:pba|kaus)\b|impeccable\.style|renaissance-geek|\bgh[pousr]_[A-Za-z0-9]{20,}\b|\bAKIA[0-9A-Z]{16}\b")
- def test_project_files(self):
-  for p in (ROOT/"README.md",ROOT/"LICENSE",ROOT/"scripts"/"install.sh",ROOT/"scripts"/"package_release.py"): self.assertTrue(p.is_file())
- def test_zip_modes(self):
-  with tempfile.TemporaryDirectory() as t:
-   z=Path(t)/"p.zip"; r=subprocess.run(["python3",str(ROOT/"scripts"/"package_release.py"),"--output",str(z)],capture_output=True,text=True); self.assertEqual(r.returncode,0,r.stdout+r.stderr)
-   with ZipFile(z) as a:
-    for n in ("scripts/install.sh","scripts/validate_bundle.py","scripts/package_release.py"):
-     self.assertTrue((a.getinfo(n).external_attr>>16)&stat.S_IXUSR,n)
+    def test_exactly_eight_direct_skill_directories(self):
+        dirs=sorted(SKILLS.iterdir())
+        self.assertEqual(len(dirs),8)
+        for item in dirs:
+            self.assertTrue(item.is_dir(),item)
+            self.assertTrue((item/"SKILL.md").is_file(),item)
+            self.assertRegex(item.name,SLUG)
+
+    def test_skill_metadata_matches_directory(self):
+        names=set()
+        for path in sorted(SKILLS.glob("*/SKILL.md")):
+            with self.subTest(path=path):
+                meta,body=metadata(path); name=meta.get("name","")
+                self.assertRegex(name,SLUG)
+                self.assertEqual(name,path.parent.name)
+                self.assertNotIn(name,names); names.add(name)
+                self.assertTrue(meta.get("description","").strip())
+                self.assertLessEqual(len(meta["description"]),220)
+                self.assertTrue(body.strip())
+
+    def test_brand_assets_are_self_contained_square_svg(self):
+        for name in ("logo-light.svg","logo-dark.svg","icon.svg"):
+            path=ROOT/"assets"/name
+            text=path.read_text(encoding="utf-8")
+            self.assertIn('viewBox="0 0 100 100"',text)
+            self.assertNotRegex(text,r"\bhref\s*=\s*['\"](?:https?:)?//|url\(\s*['\"]?(?:https?:)?//|<image\b|<script\b")
+
+    def test_no_upstream_identity_or_credential_markers(self):
+        forbidden=[
+            re.compile(r"(?i)\b(?:pba|kaus)\b"),
+            re.compile(r"(?i)impeccable\.style"),
+            re.compile(r"(?i)renaissance-geek"),
+            re.compile(r"(?i)\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
+            re.compile(r"(?i)\bAKIA[0-9A-Z]{16}\b"),
+        ]
+        for path in ROOT.rglob("*"):
+            if not path.is_file() or ".git" in path.parts or "__pycache__" in path.parts: continue
+            if path.suffix.lower() not in {".md",".py",".sh",".yml",".yaml",".txt",".svg"}: continue
+            body=path.read_text(encoding="utf-8")
+            for pattern in forbidden:
+                with self.subTest(path=path,pattern=pattern.pattern):
+                    self.assertIsNone(pattern.search(body))
+
+    def test_project_documentation_and_scripts_exist(self):
+        for path in (ROOT/"README.md",ROOT/"LICENSE",ROOT/"docs"/"compatibility.md",
+                     ROOT/"scripts"/"install.sh",ROOT/"scripts"/"package_release.py",
+                     ROOT/"scripts"/"validate_bundle.py"):
+            self.assertTrue(path.is_file(),path)
+
+    def test_release_zip_preserves_executable_entrypoints(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive=Path(directory)/"bundle.zip"
+            result=subprocess.run(
+                ["python3",str(ROOT/"scripts"/"package_release.py"),"--output",str(archive)],
+                cwd=ROOT,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            with ZipFile(archive) as z:
+                for name in ("scripts/install.sh","scripts/validate_bundle.py","scripts/package_release.py"):
+                    with self.subTest(name=name):
+                        self.assertTrue((z.getinfo(name).external_attr>>16)&stat.S_IXUSR,name)
+
 if __name__=="__main__": unittest.main()
