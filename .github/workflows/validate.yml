@@ -19,6 +19,24 @@ jobs:
         run: node --check index.js
       - name: Test runtime Skill registration
         run: node tests/test_bundle_entrypoint.mjs
+      - name: Verify the Git install package contents
+        run: |
+          npm pack --dry-run --json > /tmp/npm-pack.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("/tmp/npm-pack.json").read_text())[0]
+          names = {item["path"] for item in result["files"]}
+          required = {"package.json", "index.js", "cordis.patch.yml"}
+          required |= {f".dsh/skills/{name}/SKILL.md" for name in (
+              "project-context", "interface-blueprint", "ui-quality-audit",
+              "visual-refinement", "system-documentation", "ux-content",
+              "frontend-engineering", "workspace-operator")}
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit("npm package is missing: " + ", ".join(missing))
+          print(f"npm package contents: PASS ({len(names)} files)")
+          PY
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
       - name: Check installer syntax
