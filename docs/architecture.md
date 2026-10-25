@@ -1,7 +1,7 @@
 # Architecture
 
-DSH Design Workbench is a skills-only package. DSH discovers each workflow from `.dsh/skills/<skill-name>/SKILL.md`. The repository includes eight focused workflows and no MCP server, network service, or runtime dependency. The installer copies Skills into project or user scopes. Validation and packaging are separate maintenance tools.
+DSH Design Workbench is an installable DSH bundle. `package.json` declares `dsh.bundle.patch`, `cordis.patch.yml` inserts the plugin entrypoint into a profile, and `index.js` registers the Markdown Skills via the host's `ctx.skills` runtime service.
 
-## Execution boundaries
+The source instructions live at `.dsh/skills/<name>/SKILL.md`. At plugin activation, the entrypoint reads each file from the installed package, checks its name/description frontmatter, and registers the body in memory. No custom API server, telemetry client, credential store, or third-party runtime dependency is included.
 
-The package guides work through host tools available to DSH. It does not confer filesystem, shell, browser, or network permissions. Read-only discovery is the default; editing and external actions require suitable tools and user authorization.
+The optional `scripts/install.sh` supports direct copying into `.dsh/skills/` for local authoring or hosts using filesystem discovery directly. That is a secondary path, not the recommended DSH bundle install method.
